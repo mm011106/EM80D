@@ -115,7 +115,7 @@ architecture Behavioral of top is
 
 signal	Q5_INT:	std_logic_vector(4 downto 0);
 signal	Q3_INT:	std_logic_vector(2 downto 0);
-signal	CH_SYNC, F80_INT, OUTPUT_INH:	std_logic;
+signal	CH_SYNC, BLOCK_SYNC, BLOCK_MUSK, BURST_SYNC, OUTPUT_INH:	std_logic;
 
 begin
 		
@@ -127,19 +127,29 @@ begin
 --
 --  Counts No. of waves comes out from each channel.
 --
---
+--     activate CH_SYNC signal when the MOD24 counter = 0
  
 	Process (CLK,nPOWER_ON) begin
 		if (nPOWER_ON='1') then 
-			Q5_INT	<=	(others=>'1');
-			OUTPUT_INH	<= '1'; 
+			Q5_INT	<=	"11000";
+			OUTPUT_INH	<= '1';
 		elsif (CLK'event and CLK='1') then
 			OUTPUT_INH	<=	'0';
 			if (Q5_int="11000") then
 				Q5_int	<= "00000";
+				CH_SYNC 	<= '1';
 			else
 				Q5_INT	<=	Q5_INT+'1';
+				CH_SYNC 	<= '0';
 			end if;
+		end if;
+	end process;
+	
+	Process (Q5_INT, BURST_SYNC) begin
+		if (Q5_INT = "00001") then
+			BURST_SYNC 	<= '1';
+		else 
+			BURST_SYNC	<=	'0';
 		end if;
 	end process;
 
@@ -149,59 +159,51 @@ begin
 --
 --
 
-	Process (CH_SYNC,nPOWER_ON) begin
+	Process (CH_SYNC, nPOWER_ON) begin
 		if (nPOWER_ON='1') then 
-			Q3_INT	<=	(others=>'1');
+			Q3_INT	<=	"101";
 		elsif (CH_SYNC'event and CH_SYNC='1') then
-			if (Q3_int="101") then		--  Changed V1.2 "100" -> "101"
+			if (Q3_int="101") then		
 				Q3_int	<= "000";
+				BLOCK_SYNC <= '1';
 			else
 				Q3_INT	<=	Q3_INT+'1';
+				BLOCK_SYNC	<= '0';
 			end if;
 		end if;
 	end process;
 
-	
--- activate CH_SYNC signal when the wave counter = 0
-
-	CH_SYNC	<=	(not(Q5_INT(4))) and
-					(not(Q5_INT(3))) and	(not(Q5_INT(2))) and 
-					(not(Q5_INT(1))) and	(not(Q5_INT(0)));
-					
--- Activate FLAME_SYNC signal when ch counter = 1 
---   and desabled when ReTHM function activated
---
-	FLAME_SYNC <= not(	CH_SYNC and 
-								(not(Q3_INT(2))) and 
-								(not(Q3_INT(1))) and	(   (Q3_INT(0)))
-							) and RMT_80_nRETHM;
-
---			Modified RELEASE2_1								
---							) or ( not(RMT_80_nRETHM));
-							
+	Process (Q3_INT, BLOCK_MUSK) begin
+		if (Q3_INT = "101") then
+			BLOCK_MUSK 	<= '1';
+		else 
+			BLOCK_MUSK	<=	'0';
+		end if;
+	end process;
 --	
 --	Changing the output channel
 --						
 --			To avoid gridge on the output, Change the channel at the time when
 --			the output is disabled.
 							
-	Process (CLK,F80_int) begin
-		if (CLK'event and CLK='0' and F80_int='1') then
+	Process (CLK, CH_SYNC) begin
+		if (CLK'event and CLK='0' and CH_SYNC='1') then
 			CH	<= Q3_INT;
 		end if;
 	end process;
+	
+	
+	-- Activate FLAME_SYNC signal when ch counter = 0 	
+	--   and desabled when ReTHM function activated
+	--
+	FLAME_SYNC <= not(BURST_SYNC and BLOCK_SYNC) and RMT_80_nRETHM;
 	
 	AMP(0)	<=	SW_AMP_x10_x1;
 	AMP(1)	<=	SW_AMP_x10_x1;
 	ZOUT		<=	SW_ZO_10k_100k;
 	
-	--  disable output when wave counter = 24 or POWER OFF state (OUTPUT_INH = '1') or ReTHM mode
-	F80_INT		<=	(	((Q5_INT(4))) and	(   (Q5_INT(3))) and	
-						(not(Q5_INT(2))) and (not(Q5_INT(1))) and	(not(Q5_INT(0))))
-						or OUTPUT_INH
-						or (not(RMT_80_nRETHM));
-						
-	n80_OE	<=	F80_INT;
+	--  disable output when wave counter = 0 or channel conter = 5 or POWER OFF state (OUTPUT_INH = '1') or ReTHM mode
+	n80_OE	<=	CH_SYNC or BLOCK_MUSK or OUTPUT_INH or (not(RMT_80_nRETHM));
 	CMP_80	<=	not(nPOWER_ON) and (RMT_80_nRETHM);
 	
 	
