@@ -3,7 +3,9 @@
 
 # ignore Quartus generated folders
 /db/
+/db/*.txt
 /incremental_db/
+project/incremental_db/README
 /simulation/
 /timing/
 /testbench/
@@ -43,10 +45,12 @@
 # simulator settings
 !**/*.do
 
-# text file
-!*.txt
+# text file located on the 'project' directory
+!/project/*.txt
 
 # diagrams
 !*.svg
 !*.png
 !*.pdf
+
+

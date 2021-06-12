@@ -1,0 +1,4 @@
+Created on:09, OCT, 2014
+Based on:RELEASE2_0
+
+activate flame_sync anytime in ReTHM mode
