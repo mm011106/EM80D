@@ -1,25 +1,38 @@
--- TOP level design entity for Marker Coil Driver unit REV01
---		DR20000110-01 
---		with ReTHM functionality
---    
--- 						
---					V2.0 2014/09/10 M.Miyamoto
---						branched from V1.0
 --
---					RELEASE2_0 2014/09/11 M.Miyamoto
---						Modified based on the DR20000110-01 Circuit diagram.
---						And checked.
 --
---					RELEASE2_1 2014/10/09 M.Miyamoto
---						Activate FLAME_SYNC anytime in ReTHM mode(in case RMT_80_nRETHM=0).
---						And checked.
-
+-- [TOP level design entity]
+-- 	ESM-34402 Marker Coil Driver unit 
+--		PC-Board Number : DR20000110-06  
+--								WITHOUT ReTHM functionality
+--		Based on 
+--			MKcoilDriver 
+--			RELEASE2_1 2014/10/09 M.Miyamoto
+--
+--		REV: 1.0
+--			2021/7/3 M.Miyamoto
+--			branch :debug_#1 -> merge to main 
+--          
+--          branch :refactoring_#3 -> marge to main
+--          operability confirmed
+--
 
 library IEEE;
 use IEEE.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
+use IEEE.numeric_std.all;
+
 
 entity top is
+	-- determine counter width and max count for 
+	--   the wave counter and burst counter
+
+	generic (
+		WAVE_CNT_WIDTH : 	integer :=5;
+		BURST_CNT_WIDTH :	integer :=3;
+		WAVE_COUNT_UPPER_LIM : 	integer :=24;	-- 25-ary counter
+		BURST_COUNT_UPPER_LIM : integer :=5;	-- 6-ary counter
+		RETHM_FUNCTION_ACTIVATE: boolean := False -- flag for activate ReTHM functionality
+	);
+
 	port	(	
 		-- Analog part control IO
 		CLK: 	in	std_logic;
@@ -66,8 +79,8 @@ entity top is
 						--		1	:	80Hz
 						
 						-- nPOWER_ON: POWER CTRL
-						--		0	:	OFF (not really turn off the power, only turn off the output signals)
-						--		1	:	ON
+						--		0	:	ON
+						--		1	:	OFF (not really turn off the power, only turn off the output signals)
 					
 		--	SYNC inputs
 		RETHM_F0, RETHM_F1, RETHM_F2, RETHM_F3, RETHM_F4:	in std_logic;
@@ -96,116 +109,161 @@ entity top is
 						--		0	:	Battery LOW
 						--		1	:	Normal
 
-		FLAME_SYNC, ALM_LOW_BAT	:	out std_logic
-						--	FLAME_SYNC	: sync signal for MEG system
+		nSYNC, ALM_LOW_BAT	:	out std_logic
+						--	nSYNC	: sync signal for MEG system
 						--		Activated in 80Hz Mode
 						--    Always ON in ReTHM Mode (!!Changed RELEASE2_1!!)
 						--		Inactivated in  Power OFF mode
-						--			to reduce magnetic noise generated from FRAME_SYNC signal
+						--			to reduce magnetic noise generated from SYNC signal
 						--			transmitted via OPT Data link.
 						--
 						-- ALM_LOW_BAT	: Low battely alarm ouput
 						--		0	:	Normal
 						--		1	:	Battery LOW
 		);
+
+
+
 end top;
 
 
 architecture Behavioral of top is
 
-signal	Q5_INT:	std_logic_vector(4 downto 0);
-signal	Q3_INT:	std_logic_vector(2 downto 0);
-signal	CH_SYNC, F80_INT, OUTPUT_INH:	std_logic;
-
+    signal	WAVE_CNT:	integer range 0 to WAVE_COUNT_UPPER_LIM;
+    signal	BURST_CNT:	integer range 0 to BURST_COUNT_UPPER_LIM;
+    
+    signal	WAVE_EQ_0, WAVE_SYNC, WAVE_CNT_CARRY: std_logic;
+    signal  BLOCK_SYNC, BLOCK_MASK:	std_logic;
+    
+    signal	SYS_ENABLE, RETHM_ENABLE, MUX_80HZ_DISABLE: std_logic;
+    
 begin
-		
---		Counter for slecting output channels 
---
---
+    
+    Process (CLK,nPOWER_ON) begin 
+        if ( falling_edge(CLK) ) then
+            SYS_ENABLE <= not(nPOWER_ON);
+        end if;
+    end Process;
 
--- MOD 24 counter
+--  wave counter
 --
---  Counts No. of waves comes out from each channel.
---
---
- 
-	Process (CLK,nPOWER_ON) begin
-		if (nPOWER_ON='1') then 
-			Q5_INT	<=	(others=>'1');
-			OUTPUT_INH	<= '1'; 
-		elsif (CLK'event and CLK='1') then
-			OUTPUT_INH	<=	'0';
-			if (Q5_int="11000") then
-				Q5_int	<= "00000";
-			else
-				Q5_INT	<=	Q5_INT+'1';
-			end if;
-		end if;
-	end process;
+--	INPUT: CLK nPOWER_ON
+-- 	OUTPUT:	WAVE_CNT, WAVE_EQ_0, WAVE_SYNC, WAVE_CNT_CARRY
 
--- Mod 5 counter 
+
+    wave_counter: Process (CLK,SYS_ENABLE) begin
+        if ( SYS_ENABLE = '0' ) then 
+            WAVE_CNT	<=	WAVE_COUNT_UPPER_LIM;
+            WAVE_CNT_CARRY <= '0';
+        elsif ( rising_edge(CLK) ) then
+            if ( WAVE_CNT = WAVE_COUNT_UPPER_LIM ) then
+                WAVE_CNT	    <= 0;
+                WAVE_CNT_CARRY  <= '1';
+            else
+                WAVE_CNT	    <=	WAVE_CNT + 1;
+                WAVE_CNT_CARRY  <= '0';
+            end if;
+        end if;
+    end process; -- wave_conter
+
+    WAVE_EQ_0 <= WAVE_CNT_CARRY;
+        
+    generate_waveSync: Process (WAVE_CNT) begin
+        if ( WAVE_CNT = 1 ) then
+            WAVE_SYNC 	<= '1';
+        else 
+            WAVE_SYNC	<=	'0';
+        end if;
+    end process; -- genarate_waveSync
+
+-- Burst Counter 
 -- 
--- Counts output channels
---
---
+--	INPUT: WAVE_CNT_CARRY, SYS_ENABLE
+-- 	OUTPUT:	BURST_CNT, BLOCK_SYNC, BLOCK_MASK
 
-	Process (CH_SYNC,nPOWER_ON) begin
-		if (nPOWER_ON='1') then 
-			Q3_INT	<=	(others=>'1');
-		elsif (CH_SYNC'event and CH_SYNC='1') then
-			if (Q3_int="101") then		--  Changed V1.2 "100" -> "101"
-				Q3_int	<= "000";
-			else
-				Q3_INT	<=	Q3_INT+'1';
-			end if;
-		end if;
-	end process;
 
-	
--- activate CH_SYNC signal when the wave counter = 0
+    burst_counter: Process (WAVE_CNT_CARRY, SYS_ENABLE) begin
+        if (SYS_ENABLE='0') then 
+            BURST_CNT	<=	BURST_COUNT_UPPER_LIM ;
+        elsif ( rising_edge(WAVE_CNT_CARRY) ) then
+            if (BURST_CNT = BURST_COUNT_UPPER_LIM) then		
+                BURST_CNT <= 0;
+            else
+                BURST_CNT <= BURST_CNT + 1;
+            end if;
+        end if;
+    end process; --burst_counter
 
-	CH_SYNC	<=	(not(Q5_INT(4))) and
-					(not(Q5_INT(3))) and	(not(Q5_INT(2))) and 
-					(not(Q5_INT(1))) and	(not(Q5_INT(0)));
-					
--- Activate FLAME_SYNC signal when ch counter = 1 
---   and desabled when ReTHM function activated
---
-	FLAME_SYNC <= not(	CH_SYNC and 
-								(not(Q3_INT(2))) and 
-								(not(Q3_INT(1))) and	(   (Q3_INT(0)))
-							) and RMT_80_nRETHM;
+    generate_blockSync: Process (BURST_CNT) begin
+        if ( BURST_CNT = 0 ) then
+            BLOCK_SYNC 	<= 	'1';
+        else 
+            BLOCK_SYNC	<=	'0';
+        end if;
+    end process; -- genarate_burstSync
 
---			Modified RELEASE2_1								
---							) or ( not(RMT_80_nRETHM));
-							
+    generate_blockMask: Process (BURST_CNT) begin
+        if ( BURST_CNT = BURST_COUNT_UPPER_LIM ) then
+            BLOCK_MASK 	<=  '1';
+        else 
+            BLOCK_MASK	<=	'0';
+        end if;
+    end process;-- generate_blockMask
 --	
 --	Changing the output channel
 --						
 --			To avoid gridge on the output, Change the channel at the time when
 --			the output is disabled.
-							
-	Process (CLK,F80_int) begin
-		if (CLK'event and CLK='0' and F80_int='1') then
-			CH	<= Q3_INT;
-		end if;
-	end process;
-	
-	AMP(0)	<=	SW_AMP_x10_x1;
-	AMP(1)	<=	SW_AMP_x10_x1;
-	ZOUT		<=	SW_ZO_10k_100k;
-	
-	--  disable output when wave counter = 24 or POWER OFF state (OUTPUT_INH = '1') or ReTHM mode
-	F80_INT		<=	(	((Q5_INT(4))) and	(   (Q5_INT(3))) and	
-						(not(Q5_INT(2))) and (not(Q5_INT(1))) and	(not(Q5_INT(0))))
-						or OUTPUT_INH
-						or (not(RMT_80_nRETHM));
-						
-	n80_OE	<=	F80_INT;
-	CMP_80	<=	not(nPOWER_ON) and (RMT_80_nRETHM);
-	
-	
-	nRETHM_OE	<= not( not(RMT_80_nRETHM) and (not(OUTPUT_INH)));
-	RETHM_POWER	<=	( not(RMT_80_nRETHM) and (not(OUTPUT_INH)));
-	
+                            
+    mux_ctrl: Process (CLK, WAVE_EQ_0 ) begin
+        if ( falling_edge(CLK) and WAVE_EQ_0='1') then
+            CH	<= std_logic_vector( to_unsigned(BURST_CNT, BURST_CNT_WIDTH));
+        end if;
+    end process;-- mux_ctrl
+--	
+--	ReTHM Ctrl
+--	    Generate ReTHM OSC ctrl ckt based on the status of RETHM_FUNCTION_ACTIVATE			
+--		
+    rethm_ctrl : if (RETHM_FUNCTION_ACTIVATE) generate
+        process( SYS_ENABLE, BLOCK_MASK, RMT_80_nRETHM ) begin
+            if (SYS_ENABLE = '0') then
+                RETHM_ENABLE <= '0';
+            elsif ( rising_edge(BLOCK_MASK) ) then
+                RETHM_ENABLE <= not(RMT_80_nRETHM);
+            end if;
+        end process ; -- rethm_ctrl
+    end generate;
+
+    rethm_disable : if (not(RETHM_FUNCTION_ACTIVATE)) generate
+        RETHM_ENABLE <='0';
+    end generate;
+
+-- power off ReTHM OSC and disable MUX for ReTHM signal
+    nRETHM_OE	<= not(RETHM_ENABLE);
+    RETHM_POWER	<= RETHM_ENABLE;
+    
+-- Activate nSYNC(active Low) signal , disabled in ReTHM mode
+--
+    sync_gen : process(RETHM_ENABLE, WAVE_SYNC, BLOCK_SYNC, SYS_ENABLE) begin
+        if (RETHM_ENABLE = '0') then 
+            nSYNC <= not(WAVE_SYNC and BLOCK_SYNC and SYS_ENABLE);  
+        else 
+            nSYNC <= '0';
+        end if; 
+    end process sync_gen;
+
+    
+--  disable output when wave counter = 0 or burst conter = 5 or OFF state (SYS_ENABLE:negate)
+    n80_OE <= MUX_80HZ_DISABLE;
+    MUX_80HZ_DISABLE <= WAVE_EQ_0 or BLOCK_MASK or not(SYS_ENABLE and not(RETHM_ENABLE));
+
+    AMP(0)	<=	SW_AMP_x10_x1;
+    AMP(1)	<=	SW_AMP_x10_x1;
+    ZOUT	<=	SW_ZO_10k_100k;
+    
+    -- Always enable CLK
+    CMP_80	<=	'1';
+
+    ALM_LOW_BAT <= '1';
+        
 end Behavioral;

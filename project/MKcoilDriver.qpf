@@ -18,16 +18,14 @@
 #
 # Quartus II 64-Bit
 # Version 13.0.1 Build 232 06/12/2013 Service Pack 1 SJ Web Edition
-# Date created = 13:52:58  June 29, 2015
+# Date created = 14:18:03  April 18, 2022
 #
 # -------------------------------------------------------------------------- #
 
 QUARTUS_VERSION = "13.0"
-DATE = "13:52:58  June 29, 2015"
+DATE = "14:18:03  April 18, 2022"
 
 # Revisions
 
-PROJECT_REVISION = "RELEASE2_1"
-PROJECT_REVISION = "REV2_0"
-PROJECT_REVISION = "top"
-PROJECT_REVISION = "RELEASE2_0"
+PROJECT_REVISION = "EM-80DR_R2_2"
+PROJECT_REVISION = "ESM34402_R1_0"
