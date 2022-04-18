@@ -1,4 +1,4 @@
--- TOP level design entity for Marker Coil Driver unit REV01
+-- TOP level design entity for Marker Coil Driver unit EM-80D
 --		DR20000110-01 
 --		with ReTHM functionality
 --    
