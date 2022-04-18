@@ -14,3 +14,7 @@ Notion:　 [リファクタリングメモ](https://www.notion.so/HDL-2f2262ee2c
 
 ## 対応デバイス
 - MAX V 5M80ZT100
+
+
+## Revision
+- 2.2 2020/4/18 
