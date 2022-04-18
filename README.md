@@ -17,4 +17,4 @@ Notion:　 [リファクタリングメモ](https://www.notion.so/HDL-2f2262ee2c
 
 
 ## Revision
-- 2.2 2020/4/18 
+- **2.2** ---- 2022/4/18 
