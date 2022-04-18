@@ -1,0 +1,46 @@
+# Copyright (C) 1991-2013 Altera Corporation
+# Your use of Altera Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Altera Program License 
+# Subscription Agreement, Altera MegaCore Function License 
+# Agreement, or other applicable license agreement, including, 
+# without limitation, that your use is for the sole purpose of 
+# programming logic devices manufactured by Altera and sold by 
+# Altera or its authorized distributors.  Please refer to the 
+# applicable agreement for further details.
+
+# Quartus II 32-bit Version 13.0.1 Build 232 06/12/2013 Service Pack 1 SJ Web Edition
+# File: d:\documents\CAD\My Documents\HDL\Quatrus\MAXV\MKcoilDriver4ReTHM\MKcoilDriver_PIN_CONFIG.csv
+# Generated on: Tue Sep 16 15:44:47 2014
+
+# Note: The column header names should not be changed if you wish to import this .csv file into the Quartus II software.
+
+To,Direction,Location,I/O Bank,Fitter Location,I/O Standard,Reserved,Current Strength,Differential Pair
+ALM_LOW_BAT,Output,PIN_69,2,PIN_69,,,8mA,
+AMP[1],Output,PIN_20,1,PIN_20,,,8mA,
+AMP[0],Output,PIN_19,1,PIN_19,,,8mA,
+CH[2],Output,PIN_14,1,PIN_14,,,8mA,
+CH[1],Output,PIN_15,1,PIN_15,,,8mA,
+CH[0],Output,PIN_16,1,PIN_16,,,8mA,
+CLK,Input,PIN_18,1,PIN_18,,,8mA,
+CMP_80,Output,PIN_26,1,PIN_26,,,8mA,
+FLAME_SYNC,Output,PIN_75,2,PIN_75,,,8mA,
+n80_OE,Output,PIN_17,1,PIN_17,,,8mA,
+nLOW_BATT,Input,PIN_8,1,PIN_8,,,8mA,
+nPOWER_ON,Input,PIN_74,2,PIN_74,3.3V Schmitt Trigger Input,,8mA,
+nRETHM_OE,Output,PIN_7,1,PIN_7,,,8mA,
+RETHM_F0,Input,PIN_6,1,PIN_6,,,8mA,
+RETHM_F1,Input,PIN_5,1,PIN_5,,,8mA,
+RETHM_F2,Input,PIN_4,1,PIN_4,,,8mA,
+RETHM_F3,Input,PIN_3,1,PIN_3,,,8mA,
+RETHM_F4,Input,PIN_2,1,PIN_2,,,8mA,
+RETHM_POWER,Output,PIN_27,1,PIN_27,,,8mA,
+RMT_80_nRETHM,Input,PIN_71,2,PIN_71,3.3V Schmitt Trigger Input,,8mA,
+SW_80_nRETHM,Input,PIN_52,2,PIN_52,3.3V Schmitt Trigger Input,,8mA,
+SW_AMP_x10_x1,Input,PIN_55,2,PIN_55,3.3V Schmitt Trigger Input,,8mA,
+SW_OPTION,Input,PIN_53,2,PIN_53,3.3V Schmitt Trigger Input,,8mA,
+SW_ZO_10k_100k,Input,PIN_54,2,PIN_54,3.3V Schmitt Trigger Input,,8mA,
+ZOUT,Output,PIN_21,1,PIN_21,,,8mA,

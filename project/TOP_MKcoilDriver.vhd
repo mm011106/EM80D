@@ -1,20 +1,27 @@
+-- TOP level design entity for Marker Coil Driver unit REV01
+--		DR20000110-01 
+--		with ReTHM functionality
+--    
+-- 						
+--					V2.0 2014/09/10 M.Miyamoto
+--						branched from V1.0
 --
+--					RELEASE2_0 2014/09/11 M.Miyamoto
+--						Modified based on the DR20000110-01 Circuit diagram.
+--						And checked.
 --
--- [TOP level design entity]
--- 	ESM-34402 Marker Coil Driver unit 
---		PC-Board Number : DR20000110-06  
---								WITHOUT ReTHM functionality
---		Based on 
---			MKcoilDriver 
---			RELEASE2_1 2014/10/09 M.Miyamoto
---
---		REV: 1.0
---			2021/7/3 M.Miyamoto
---			branch :debug_#1 -> merge to main 
---          
---          branch :refactoring_#3 -> marge to main
---          operability confirmed
---
+--					RELEASE2_1 2014/10/09 M.Miyamoto
+--						Activate FLAME_SYNC anytime in ReTHM mode(in case RMT_80_nRETHM=0).
+--						And checked.
+
+--					RELEASE2_2 2022/4/18 M.Miyamoto
+--						Refactored based on ESM34401
+--						
+
+--		Device:
+--			5M80ZT100
+-- 	Pin assign:
+--			EM80_PIN_CONFIG.csv
 
 library IEEE;
 use IEEE.std_logic_1164.all;
@@ -30,7 +37,7 @@ entity top is
 		BURST_CNT_WIDTH :	integer :=3;
 		WAVE_COUNT_UPPER_LIM : 	integer :=24;	-- 25-ary counter
 		BURST_COUNT_UPPER_LIM : integer :=5;	-- 6-ary counter
-		RETHM_FUNCTION_ACTIVATE: boolean := False -- flag for activate ReTHM functionality
+		RETHM_FUNCTION_ACTIVATE: boolean := True -- flag for activate ReTHM functionality
 	);
 
 	port	(	
