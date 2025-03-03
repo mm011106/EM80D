@@ -11,11 +11,15 @@
 --						And checked.
 --
 --					RELEASE2_1 2014/10/09 M.Miyamoto
---						Activate FLAME_SYNC anytime in ReTHM mode(in case RMT_80_nRETHM=0).
+--						Activate FRAME_SYNC anytime in ReTHM mode(in case RMT_80_nRETHM=0).
 --						And checked.
 
 --					RELEASE2_2 2022/4/18 M.Miyamoto
 --						Refactored based on ESM34401
+--						
+
+--					RELEASE2_2 Revised 2025/3/3 M.Miyamoto
+--						Revised as Open Hardware 
 --						
 
 --		Device:
@@ -99,7 +103,7 @@ entity top is
 						--			This switch is ignored on this version
 						--			Always in 80Hz mode
 						
-						--	SW_ZO_10k_100k	: Control output imepdance
+						--	SW_ZO_10k_100k	: Control output impedance
 						--		0	:	100kohm
 						--		1	:	10kohm
 
@@ -124,7 +128,7 @@ entity top is
 						--			to reduce magnetic noise generated from SYNC signal
 						--			transmitted via OPT Data link.
 						--
-						-- ALM_LOW_BAT	: Low battely alarm ouput
+						-- ALM_LOW_BAT	: Low battery alarm output
 						--		0	:	Normal
 						--		1	:	Battery LOW
 		);
@@ -181,7 +185,7 @@ begin
         else 
             WAVE_SYNC	<=	'0';
         end if;
-    end process; -- genarate_waveSync
+    end process; -- generate_waveSync
 
 -- Burst Counter 
 -- 
@@ -207,7 +211,7 @@ begin
         else 
             BLOCK_SYNC	<=	'0';
         end if;
-    end process; -- genarate_burstSync
+    end process; -- generate_burstSync
 
     generate_blockMask: Process (BURST_CNT) begin
         if ( BURST_CNT = BURST_COUNT_UPPER_LIM ) then
@@ -219,7 +223,7 @@ begin
 --	
 --	Changing the output channel
 --						
---			To avoid gridge on the output, Change the channel at the time when
+--			To avoid glitch on the output, Change the channel at the time when
 --			the output is disabled.
                             
     mux_ctrl: Process (CLK, WAVE_EQ_0 ) begin
@@ -260,7 +264,7 @@ begin
     end process sync_gen;
 
     
---  disable output when wave counter = 0 or burst conter = 5 or OFF state (SYS_ENABLE:negate)
+--  disable output when wave counter = 0 or burst counter = 5 or OFF state (SYS_ENABLE:negate)
     n80_OE <= MUX_80HZ_DISABLE;
     MUX_80HZ_DISABLE <= WAVE_EQ_0 or BLOCK_MASK or not(SYS_ENABLE and not(RETHM_ENABLE));
 
